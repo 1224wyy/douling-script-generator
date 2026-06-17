@@ -666,6 +666,18 @@ def create_app():
         db.session.commit()
         return jsonify({"success": True, "count": count})
 
+    @app.route('/api/admin/migrate-knowledge', methods=['POST'])
+    def api_migrate_knowledge():
+        """将已有已分析视频的分析报告拆解为知识卡片"""
+        videos = Video.query.filter_by(is_analyzed=True).all()
+        total = 0
+        for v in videos:
+            if v.analysis and len(v.analysis) > 100:
+                n = _extract_knowledge_from_analysis(v)
+                total += n
+        db.session.commit()
+        return jsonify({"success": True, "cards_created": total})
+
     return app
 
 
@@ -694,19 +706,6 @@ def _write_table_to_doc(doc, rows):
                         for run in p.runs:
                             run.bold = True
     doc.add_paragraph('')
-
-
-    @app.route('/api/admin/migrate-knowledge', methods=['POST'])
-    def api_migrate_knowledge():
-        """将已有已分析视频的分析报告拆解为知识卡片"""
-        videos = Video.query.filter_by(is_analyzed=True).all()
-        total = 0
-        for v in videos:
-            if v.analysis and len(v.analysis) > 100:
-                n = _extract_knowledge_from_analysis(v)
-                total += n
-        db.session.commit()
-        return jsonify({"success": True, "cards_created": total})
 
 
 def _extract_knowledge_from_analysis(video):
