@@ -303,6 +303,25 @@ def create_app():
             cards = KnowledgeCard.query.order_by(KnowledgeCard.created_at.desc()).all()
         return jsonify([c.to_dict() for c in cards])
 
+    @app.route('/api/knowledge/cards/<int:card_id>', methods=['GET', 'PUT', 'DELETE'])
+    def api_knowledge_card(card_id):
+        card = KnowledgeCard.query.get_or_404(card_id)
+        if request.method == 'DELETE':
+            db.session.delete(card)
+            db.session.commit()
+            return jsonify({"success": True})
+        elif request.method == 'PUT':
+            data = request.get_json()
+            if 'title' in data:
+                card.title = data['title'][:200]
+            if 'content' in data:
+                card.content = data['content'][:2000]
+            if 'tags' in data:
+                card.tags = data['tags'][:300]
+            db.session.commit()
+            return jsonify({"success": True, "card": card.to_dict()})
+        return jsonify(card.to_dict())
+
     @app.route('/api/knowledge/docs/<int:doc_id>', methods=['PUT'])
     def api_knowledge_doc_update(doc_id):
         doc = KnowledgeDoc.query.get_or_404(doc_id)
