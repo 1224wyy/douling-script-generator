@@ -75,10 +75,21 @@ async function parseVideo() {
             let detailHtml = '';
             if (d.title) detailHtml += `<p><strong>📝 标题：</strong>${escapeHtml(d.title)}</p>`;
             if (d.author) detailHtml += `<p><strong>👤 作者：</strong>${escapeHtml(d.author)}</p>`;
-            if (d.description && !d.description.startsWith('⚠️')) detailHtml += `<p><strong>📄 简介：</strong>${escapeHtml(d.description)}</p>`;
+            if (d.author_signature) detailHtml += `<p><strong>📝 简介：</strong>${escapeHtml(d.author_signature).substring(0, 200)}</p>`;
+            if (d.description && !d.description.startsWith('⚠️')) detailHtml += `<p><strong>📄 视频描述：</strong>${escapeHtml(d.description)}</p>`;
             if (d.tags && d.tags.length) detailHtml += `<p><strong>🏷 标签：</strong>${d.tags.map(t => `<span class="tag tag-pink">${escapeHtml(t)}</span>`).join(' ')}</p>`;
             if (d.music) detailHtml += `<p><strong>🎵 BGM：</strong>${escapeHtml(d.music)}</p>`;
             if (d.duration) detailHtml += `<p><strong>⏱ 时长：</strong>${escapeHtml(d.duration)}</p>`;
+
+            // 数据表现
+            const stats = [];
+            if (d.play_count) stats.push(`▶️ 播放 ${d.play_count}`);
+            if (d.likes) stats.push(`❤️ 点赞 ${d.likes}`);
+            if (d.comments) stats.push(`💬 评论 ${d.comments}`);
+            if (d.shares) stats.push(`🔄 分享 ${d.shares}`);
+            if (d.collects) stats.push(`⭐ 收藏 ${d.collects}`);
+            if (stats.length) detailHtml += `<p><strong>📊 数据表现：</strong>${stats.join(' · ')}</p>`;
+            if (d.video_id) detailHtml += `<p><strong>🆔 视频ID：</strong>${escapeHtml(d.video_id)}</p>`;
 
             const isPartial = d.parse_status === 'partial' || d.parse_status === 'needs_manual' || d.parse_status === 'failed';
 

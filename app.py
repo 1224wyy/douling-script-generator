@@ -360,6 +360,8 @@ def create_app():
             parsed_content_parts.append(f"【标签】{', '.join(parsed['tags'])}")
 
         stats_parts = []
+        if parsed.get('play_count'):
+            stats_parts.append(f"播放 {parsed['play_count']}")
         if parsed.get('likes'):
             stats_parts.append(f"点赞 {parsed['likes']}")
         if parsed.get('comments'):
@@ -375,6 +377,12 @@ def create_app():
             parsed_content_parts.append(f"【视频ID】{parsed['video_id']}")
         if parsed.get('real_url'):
             parsed_content_parts.append(f"【真实链接】{parsed['real_url']}")
+        if parsed.get('source'):
+            parsed_content_parts.append(f"【数据来源】{parsed['source']}")
+
+        has_download = bool(parsed.get('downloaded_file'))
+        if has_download:
+            parsed_content_parts.append(f"【视频文件】已下载（{parsed.get('file_size', 0) / 1024 / 1024:.1f} MB）")
 
         if not parsed.get('title') and not parsed.get('description'):
             parsed_content_parts.append("（未能提取到详细内容，可尝试手动输入后再分析）")
@@ -394,6 +402,7 @@ def create_app():
             "parsed_detail": {
                 "title": parsed.get('title', ''),
                 "author": parsed.get('author', ''),
+                "author_signature": parsed.get('author_signature', ''),
                 "description": parsed.get('description', ''),
                 "tags": parsed.get('tags', []),
                 "music": parsed.get('music', ''),
@@ -403,8 +412,11 @@ def create_app():
                 "comments": parsed.get('comments', ''),
                 "shares": parsed.get('shares', ''),
                 "collects": parsed.get('collects', ''),
+                "play_count": parsed.get('play_count', ''),
                 "video_id": parsed.get('video_id', ''),
                 "parse_status": parsed.get('parse_status', 'success'),
+                "has_download": has_download,
+                "downloaded_file": parsed.get('downloaded_file', ''),
             }
         })
 
