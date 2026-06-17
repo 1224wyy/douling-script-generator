@@ -666,6 +666,59 @@ def create_app():
         db.session.commit()
         return jsonify({"success": True, "count": count})
 
+    @app.route('/api/admin/cleanup', methods=['POST'])
+    def api_admin_cleanup():
+        """去重 + 重建知识卡片"""
+        # 1. 视频去重（按URL）
+        seen = set()
+        dupes = []
+        for v in Video.query.order_by(Video.id.desc()).all():
+            key = v.url.strip()
+            if key in seen:
+                dupes.append(v)
+            else:
+                seen.add(key)
+        for d in dupes:
+            db.session.delete(d)
+        video_dedup = len(dupes)
+
+        # 2. 脚本去重（按标题）
+        seen2 = set()
+        dupes2 = []
+        for s in Script.query.order_by(Script.id.desc()).all():
+            key = s.title.strip()
+            if key in seen2:
+                dupes2.append(s)
+            else:
+                seen2.add(key)
+        for d in dupes2:
+            db.session.delete(d)
+        script_dedup = len(dupes2)
+
+        # 3. 清除旧知识卡片
+        old = KnowledgeCard.query.delete()
+        # 清除旧知识文档
+        KnowledgeDoc.query.delete()
+
+        # 4. 重新生成知识卡片
+        cards_total = 0
+        for v in Video.query.filter_by(is_analyzed=True).all():
+            if v.analysis and len(v.analysis) > 100:
+                n = _extract_knowledge_from_analysis(v)
+                cards_total += n
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "videos_removed": video_dedup,
+            "scripts_removed": script_dedup,
+            "old_cards_removed": old,
+            "new_cards_created": cards_total,
+            "videos_after": Video.query.count(),
+            "scripts_after": Script.query.count(),
+            "cards_after": KnowledgeCard.query.count(),
+        })
+
     @app.route('/api/admin/migrate-knowledge', methods=['POST'])
     def api_migrate_knowledge():
         """将已有已分析视频的分析报告拆解为知识卡片"""
