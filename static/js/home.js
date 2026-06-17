@@ -181,6 +181,7 @@ async function startGenerate() {
             fast_mode: fastMode,
         });
         resultContent.innerHTML = mdToHtml(data.script.content);
+        lastGeneratedScriptId = data.script.id;
         showToast('脚本生成成功！', 'success');
     } catch (e) {
         resultContent.innerHTML = `<p style="color:var(--danger);">生成失败：${escapeHtml(e.message)}</p>`;
@@ -200,14 +201,36 @@ function copyResult() {
     });
 }
 
+let lastGeneratedScriptId = null;
+
 async function saveResult() {
     const title = document.getElementById('scriptTitle').value.trim();
     const content = document.getElementById('resultContent').innerText;
     try {
-        await apiPost('/api/scripts', { title, content });
+        const data = await apiPost('/api/scripts', { title, content });
+        lastGeneratedScriptId = data.script.id;
         showToast('脚本已保存', 'success');
     } catch (e) {
         showToast('保存失败: ' + e.message, 'error');
+    }
+}
+
+function downloadResult(format) {
+    const id = lastGeneratedScriptId;
+    if (!id) {
+        // 如果没有保存，先保存再下载
+        const title = document.getElementById('scriptTitle').value.trim();
+        const content = document.getElementById('resultContent').innerText;
+        if (!title || !content) {
+            showToast('请先生成脚本', 'error');
+            return;
+        }
+        apiPost('/api/scripts', { title, content }).then(data => {
+            lastGeneratedScriptId = data.script.id;
+            window.open(`/api/scripts/${data.script.id}/download.${format}`, '_blank');
+        }).catch(e => showToast('保存失败: ' + e.message, 'error'));
+    } else {
+        window.open(`/api/scripts/${id}/download.${format}`, '_blank');
     }
 }
 

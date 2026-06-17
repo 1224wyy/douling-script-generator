@@ -32,8 +32,10 @@ async function loadHistory() {
                     </div>
                 </div>
                 <div class="list-item-actions">
-                    <button class="btn btn-sm btn-outline" onclick="viewScript(${s.id})">👁 查看</button>
-                    <button class="btn btn-sm btn-outline" onclick="copyScriptContent(${s.id})">📋 复制</button>
+                    <button class="btn btn-sm btn-outline" onclick="viewScript(${s.id})">👁</button>
+                    <button class="btn btn-sm btn-outline" onclick="copyScriptContent(${s.id})">📋</button>
+                    <button class="btn btn-sm btn-outline" onclick="downloadScript(${s.id},'md')">📥</button>
+                    <button class="btn btn-sm btn-outline" onclick="downloadScript(${s.id},'docx')">📝</button>
                     <button class="btn btn-sm btn-danger" onclick="deleteScript(${s.id})">🗑</button>
                 </div>
             </div>
@@ -66,6 +68,10 @@ async function copyScriptContent(id) {
     } catch (e) {
         showToast('复制失败', 'error');
     }
+}
+
+function downloadScript(id, format) {
+    window.open(`/api/scripts/${id}/download.${format}`, '_blank');
 }
 
 async function deleteScript(id) {

@@ -471,6 +471,71 @@ def create_app():
             "video_count": Video.query.count(),
         })
 
+    @app.route('/api/scripts/<int:script_id>/download.<fmt>', methods=['GET'])
+    def api_script_download(script_id, fmt):
+        """导出脚本为文档格式"""
+        script = Script.query.get_or_404(script_id)
+
+        if fmt == 'md':
+            content = f"""# {script.title}
+
+> 创作需求：{script.requirement}
+> 生成时间：{script.created_at}
+
+---
+
+{script.content}
+"""
+            return content, 200, {
+                'Content-Type': 'text/markdown; charset=utf-8',
+                'Content-Disposition': f'attachment; filename="{script.title[:30]}.md"'
+            }
+
+        elif fmt == 'txt':
+            content = f"{script.title}\n{'='*50}\n创作需求：{script.requirement}\n生成时间：{script.created_at}\n{'='*50}\n\n{script.content}"
+            return content, 200, {
+                'Content-Type': 'text/plain; charset=utf-8',
+                'Content-Disposition': f'attachment; filename="{script.title[:30]}.txt"'
+            }
+
+        elif fmt == 'docx':
+            try:
+                from docx import Document
+                from io import BytesIO
+                doc = Document()
+                doc.styles['Normal'].font.name = 'Arial'
+                doc.add_heading(script.title, 0)
+                if script.requirement:
+                    doc.add_paragraph(f"创作需求：{script.requirement}", style='Intense Quote')
+                doc.add_paragraph(f"生成时间：{script.created_at}")
+                doc.add_paragraph('')
+
+                for line in script.content.split('\n'):
+                    if line.startswith('## '):
+                        doc.add_heading(line[3:], level=2)
+                    elif line.startswith('### '):
+                        doc.add_heading(line[4:], level=3)
+                    elif line.startswith('# '):
+                        doc.add_heading(line[2:], level=1)
+                    elif line.startswith('- ') or line.startswith('* '):
+                        doc.add_paragraph(line[2:], style='List Bullet')
+                    elif line.startswith('|'):
+                        pass  # skip table rows
+                    elif line.strip():
+                        doc.add_paragraph(line)
+
+                buf = BytesIO()
+                doc.save(buf)
+                buf.seek(0)
+                return buf.getvalue(), 200, {
+                    'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'Content-Disposition': f'attachment; filename="{script.title[:30]}.docx"'
+                }
+            except ImportError:
+                return jsonify({"error": "python-docx 未安装"}), 500
+
+        return jsonify({"error": "不支持的格式"}), 400
+
     @app.route('/api/admin/seed', methods=['POST'])
     def api_admin_seed():
         """一键导入种子数据到共享数据库"""
