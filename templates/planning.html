@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">前期策划管理</h1>
+    <p class="page-desc">AI 对话式策划 · 与 AI 多轮对话，逐步细化策划方案</p>
+</div>
+
+<div class="two-col planning-layout">
+    <!-- 左侧：AI 对话窗口 -->
+    <div class="chat-panel">
+        <div class="chat-header">
+            <span>🤖 AI 策划助手</span>
+            <button class="btn btn-sm btn-outline" onclick="clearChat()">🔄 新对话</button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="chat-msg ai">
+                <div class="msg-avatar">🤖</div>
+                <div class="msg-bubble">
+                    你好！我是你的 AI 策划助手。<br><br>
+                    告诉我你想做什么类型的抖音账号？比如：<br>
+                    • 赛道（美妆/美食/知识/育儿...）<br>
+                    • 目标受众<br>
+                    • 有什么特别的想法或需求？<br><br>
+                    我会一步步帮你细化策划方案 💡
+                </div>
+            </div>
+        </div>
+        <div class="chat-input-area">
+            <textarea id="chatInput" class="chat-input" placeholder="输入你的想法，与 AI 讨论策划方案..." rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+            <button class="btn btn-primary" onclick="sendMessage()">发送</button>
+        </div>
+    </div>
+
+    <!-- 右侧：策划文档列表 + 当前策划 -->
+    <div class="plan-sidebar">
+        <div class="toolbar" style="margin-bottom:12px;">
+            <button class="btn btn-outline" onclick="refreshPlans()">🔄 刷新</button>
+            <button class="btn btn-outline" onclick="uploadPlanDoc()">📄 上传文档</button>
+            <input type="file" id="planFileInput" style="display:none;" accept=".pdf,.doc,.docx,.txt,.md" onchange="handlePlanUpload(this)">
+        </div>
+
+        <div id="currentPlanCard" class="card" style="display:none;margin-bottom:16px;">
+            <div class="card-header">
+                <span class="card-title" id="currentPlanTitle">📋 当前策划</span>
+                <div>
+                    <button class="btn btn-sm btn-outline" onclick="saveCurrentPlan()">💾 保存</button>
+                </div>
+            </div>
+            <div id="currentPlanContent" class="result-box" style="max-height:400px;font-size:13px;"></div>
+        </div>
+
+        <h4 style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">已保存的策划文档</h4>
+        <div id="planList">
+            <div class="empty-state" style="padding:20px;">
+                <p class="empty-state-text">暂无策划文档</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/planning.js"></script>
+{% endblock %}

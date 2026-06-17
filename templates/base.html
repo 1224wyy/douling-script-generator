@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抖音脚本生成器 - 抖灵AI创作引擎</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="/home" class="brand-link">
+                    <span class="brand-icon">⚡</span>
+                    <span class="brand-text">V1.0</span>
+                </a>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/home" class="nav-item {% if request.path == '/home' or request.path == '/' %}active{% endif %}">脚本生成</a></li>
+                <li><a href="/planning" class="nav-item {% if request.path == '/planning' %}active{% endif %}">前期策划</a></li>
+                <li><a href="/knowledge" class="nav-item {% if request.path == '/knowledge' %}active{% endif %}">知识库</a></li>
+                <li><a href="/accounts" class="nav-item {% if request.path == '/accounts' %}active{% endif %}">对标视频</a></li>
+                <li><a href="/history" class="nav-item {% if request.path == '/history' %}active{% endif %}">历史记录</a></li>
+            </ul>
+            <div class="nav-right">
+                <div class="api-key-box">
+                    <input type="password" id="apiKeyInput" placeholder="输入 DeepSeek API Key" autocomplete="off">
+                    <button id="saveApiKeyBtn" class="btn btn-sm btn-outline" title="保存 API Key">
+                        💾
+                    </button>
+                </div>
+                <button class="btn btn-sm btn-outline nav-btn" onclick="window.location.href='/'">
+                    🏠 首页
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <p>抖灵AI创作引擎 · 抖音脚本生成器 ·
+            <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">苏ICP备2026036031号</a>
+        </p>
+    </footer>
+
+    <!-- Toast 提示 -->
+    <div id="toast" class="toast"></div>
+
+    <!-- 全局JS -->
+    <script src="/static/js/app.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

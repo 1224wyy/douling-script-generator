@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Script History / 脚本历史</h1>
+    <p class="page-desc">查看和管理历史生成的脚本</p>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <span class="stat-label">存储脚本数</span>
+        <span class="stat-value" id="scriptCount">0</span>
+        <span class="stat-limit" id="scriptLimit">/ 500</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">使用关键词数</span>
+        <span class="stat-value" id="keywordCount">0</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">使用对标视频</span>
+        <span class="stat-value" id="videoCount">0</span>
+    </div>
+</div>
+
+<div class="card-header" style="background:transparent;">
+    <span class="card-title">脚本列表</span>
+    <span style="font-size:12px;color:var(--text-muted);" id="listQuota">0 / 500 上限</span>
+    <button class="btn btn-sm btn-outline" onclick="loadHistory()">🔄 刷新</button>
+</div>
+
+<div id="scriptList">
+    <div class="empty-state">
+        <div class="empty-state-icon">📜</div>
+        <p class="empty-state-text">加载中...</p>
+    </div>
+</div>
+
+<!-- 脚本详情弹窗 -->
+<div id="detailModal" class="modal-overlay" style="display:none;">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title" id="detailTitle">脚本详情</h3>
+            <button class="modal-close" onclick="closeDetailModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div id="detailContent" class="result-box" style="max-height:500px;"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/history.js"></script>
+{% endblock %}

@@ -1,0 +1,6 @@
+douling_data/
+*.db
+__pycache__/
+douling_*.json
+douling_session.json
+uploads/

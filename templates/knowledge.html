@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">知识库</h1>
+    <p class="page-desc">上传文档自动拆解为知识卡片，为脚本创作提供知识储备</p>
+</div>
+
+<!-- 统计 -->
+<div class="stats-grid" style="grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));">
+    <div class="stat-card">
+        <span class="stat-label">知识卡片数量</span>
+        <span class="stat-value" id="cardCount">0</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">文档数量</span>
+        <span class="stat-value" id="docCount">0</span>
+    </div>
+    <div class="stat-card">
+        <button class="btn btn-outline" onclick="batchManage()">📦 批量管理</button>
+    </div>
+</div>
+
+<!-- 上传区域 -->
+<div class="two-col" style="margin-bottom:24px;">
+    <div class="upload-zone" id="cardUploadZone" onclick="document.getElementById('knowledgeFileInput').click()">
+        <div class="upload-zone-icon">📄</div>
+        <div class="upload-zone-text">点击或拖拽上传</div>
+        <div class="upload-zone-hint">PDF/Word/TXT/MD · 自动拆解为知识卡片</div>
+    </div>
+    <div class="upload-zone" id="docUploadZone" onclick="document.getElementById('knowledgeFileInput').click()">
+        <div class="upload-zone-icon">📚</div>
+        <div class="upload-zone-text">分组文档上传</div>
+        <div class="upload-zone-hint">支持 PDF、Word、TXT、MD</div>
+        <div class="upload-zone-hint">大文件自动本地提取文本，无需担心大小</div>
+    </div>
+    <input type="file" id="knowledgeFileInput" style="display:none;" accept=".pdf,.doc,.docx,.txt,.md" onchange="uploadKnowledgeFile(this)" multiple>
+</div>
+
+<!-- 分组和文档列表 -->
+<div class="tabs" id="groupTabs">
+    <span class="tab active" onclick="filterByGroup('all')">全部</span>
+    <span class="tab" onclick="filterByGroup('未分组')">未分组</span>
+</div>
+
+<div id="docList">
+    <div class="empty-state">
+        <div class="empty-state-icon">📄</div>
+        <p class="empty-state-text">暂无知识文档</p>
+    </div>
+</div>
+
+<!-- 知识卡片弹窗 -->
+<div id="cardsModal" class="modal-overlay" style="display:none;">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">知识卡片</h3>
+            <button class="modal-close" onclick="closeCardsModal()">✕</button>
+        </div>
+        <div id="cardsContent" class="modal-body"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/knowledge.js"></script>
+{% endblock %}

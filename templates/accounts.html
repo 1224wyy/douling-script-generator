@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">对标视频</h1>
+    <p class="page-desc">输入短视频链接，解析视频信息，深度分析视频内容作为脚本创作参考</p>
+</div>
+
+<!-- 积分提示 -->
+<div style="display:flex;gap:16px;margin-bottom:20px;font-size:13px;color:var(--text-muted);">
+    <span>💎 解析下载消耗 <strong style="color:var(--warning);">2 积分</strong></span>
+    <span>💎 深度分析消耗 <strong style="color:var(--warning);">6 积分</strong></span>
+</div>
+
+<!-- 视频链接输入区 -->
+<div class="card" style="margin-bottom:24px;">
+    <div style="display:flex;gap:12px;">
+        <input type="text" id="videoUrlInput" class="form-input" placeholder="粘贴抖音视频链接（如 https://v.douyin.com/xxx/）..." style="flex:1;">
+        <button class="btn btn-outline" onclick="parseVideo()">📥 解析链接</button>
+        <button class="btn btn-outline" onclick="showManualInput()">✏️ 手动输入</button>
+    </div>
+    <p style="margin-top:8px;font-size:12px;color:var(--text-muted);">
+        💡 提示：解析链接会自动提取视频标题、作者、简介等信息。如果解析不完整，可点击「手动输入」直接粘贴视频文案，再进行AI分析。
+    </p>
+</div>
+
+<!-- 分组筛选 -->
+<div class="tabs" id="videoGroupTabs" style="margin-bottom:16px;">
+    <span class="tab active" onclick="filterVideos('all')">全部视频 <span style="font-size:11px;opacity:0.7;" id="allVideoCount">0</span></span>
+    <span class="tab" onclick="filterVideos('全部视频')">未分组 <span style="font-size:11px;opacity:0.7;" id="ungroupedCount">0</span></span>
+    <button class="btn btn-sm btn-outline" style="margin-left:auto;" onclick="batchVideoOp()">批量</button>
+</div>
+
+<!-- 视频列表 -->
+<div id="videoList">
+    <div class="empty-state">
+        <div class="empty-state-icon">🎬</div>
+        <p class="empty-state-text">暂无对标视频</p>
+        <p style="font-size:12px;color:var(--text-muted);">输入抖音链接开始解析，或手动输入视频内容</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/accounts.js"></script>
+{% endblock %}
