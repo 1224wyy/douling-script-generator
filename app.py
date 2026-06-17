@@ -708,58 +708,88 @@ def _write_table_to_doc(doc, rows):
     doc.add_paragraph('')
 
 
+def _smart_card_name(section_title, content):
+    """根据分析章节内容生成通俗易懂的卡片名"""
+    import re
+
+    # 提取核心关键词
+    title_lower = section_title.lower()
+    content_first = content[:200].lower()
+
+    # 规则匹配 → 简洁命名
+    rules = [
+        (r'开头|黄金|钩子|前.*秒|吸引|抓', '钩子'),
+        (r'结尾|互动引导|引导|关注|转化|逼单|下单|购买|挂车', '引导转化'),
+        (r'文案|台词|话术|口播|对白|金句', '文案话术'),
+        (r'爆款|能爆|跑量|流量', '爆款密码'),
+        (r'受众|目标|人群|画像|定位', '受众定位'),
+        (r'制作|拍摄|运镜|构图|光线|镜头', '拍摄手法'),
+        (r'剪辑|节奏|转场|快切|慢镜', '剪辑节奏'),
+        (r'bgm|音乐|音效|配乐|卡点', 'BGM音效'),
+        (r'标签|话题|关键词|seo', '标签策略'),
+        (r'方法论|公式|模板|可复用|底层逻辑', '创作公式'),
+        (r'改进|优化|创新|重做', '优化思路'),
+        (r'结构|框架|节奏|层次', '结构框架'),
+        (r'情绪|情感|共鸣|感动|焦虑', '情绪调动'),
+        (r'视觉|画面|字幕|特效|封面', '视觉包装'),
+        (r'产品|卖点|植入|种草|展示', '产品植入'),
+    ]
+
+    for pattern, name in rules:
+        if re.search(pattern, title_lower + content_first):
+            # 提取具体的技巧名
+            detail = ''
+            for line in (section_title + '\n' + content).split('\n'):
+                line = line.strip().lstrip('*').strip()
+                if len(line) > 5 and len(line) < 50 and line != section_title:
+                    detail = line
+                    break
+            if detail:
+                return f"{name}-{detail[:25]}"
+            return name
+
+    # 默认：取标题前30字
+    short = section_title[:30].strip().lstrip('#').strip()
+    return short if short else '创作技巧'
+
+
 def _extract_knowledge_from_analysis(video):
     """从视频AI分析报告中自动提取知识卡片"""
     analysis = video.analysis
     if not analysis:
         return 0
 
-    # 按 ### 标题拆分为知识片段
     sections = analysis.split('\n### ')
     cards_made = 0
 
-    # 找到或创建知识库文档
-    doc = KnowledgeDoc.query.filter_by(title='视频分析精华').first()
-    if not doc:
-        doc = KnowledgeDoc(
-            title='视频分析精华',
-            file_name='video_analysis_knowledge.md',
-            content='',
-            card_count=0,
-            group_name='视频分析知识',
-        )
-        db.session.add(doc)
-        db.session.flush()
-
-    for sec in sections[1:]:  # 跳过第一部分（视频概述）
+    for sec in sections[1:]:
         lines = sec.strip().split('\n')
-        title = lines[0].strip()[:200] if lines else '分析片段'
-        # 跳过太短的标题（如纯数字、纯符号）
-        if len(title) < 3:
+        raw_title = lines[0].strip()[:200] if lines else ''
+        if len(raw_title) < 3:
             continue
         content = '\n'.join(lines[1:]).strip()[:2000] if len(lines) > 1 else sec.strip()[:2000]
         if len(content) < 30:
             continue
 
-        # 提取标签
+        # 智能命名
+        title = _smart_card_name(raw_title, content)
+
+        # 标签
         tags = []
-        tag_keywords = ['开头', '中段', '结尾', '爆款', '受众', '文案', '制作', '拍摄', '剪辑',
-                        'BGM', '标签', '方法论', '改进', '创新', '结构', '节奏']
-        for t in tag_keywords:
-            if t in title or t in content[:100]:
+        for t in ['钩子', '引导转化', '文案话术', '爆款', '受众', '拍摄', '剪辑', 'BGM',
+                   '标签', '公式', '优化', '结构', '情绪', '视觉', '产品']:
+            if t in title or t in raw_title or t in content[:100]:
                 tags.append(t)
 
         card = KnowledgeCard(
-            doc_id=doc.id,
-            title=f"🎬 {video.title[:40]} — {title[:80]}",
+            doc_id=None,  # 独立卡片，不归属文档
+            title=title[:200],
             content=content,
-            tags=', '.join(tags[:5]) if tags else '视频分析',
+            tags=', '.join(tags[:4]) if tags else '创作技巧',
         )
         db.session.add(card)
         cards_made += 1
 
-    doc.card_count = KnowledgeCard.query.filter_by(doc_id=doc.id).count()
-    db.session.add(doc)
     return cards_made
 
 

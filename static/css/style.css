@@ -353,6 +353,24 @@ a:hover {
     color: var(--text-muted);
 }
 
+/* ===== 知识卡片网格 ===== */
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+}
+
+.knowledge-card {
+    transition: all 0.2s;
+    min-height: 120px;
+}
+
+.knowledge-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    border-color: var(--accent);
+}
+
 /* ===== 文件上传区 ===== */
 .upload-zone {
     border: 2px dashed var(--border);
