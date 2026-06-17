@@ -434,8 +434,16 @@ def create_app():
             analysis = analyze_video_content(api_key, video.title, video.parsed_content)
             video.analysis = analysis
             video.is_analyzed = True
+
+            # 自动拆解分析报告为知识卡片
+            cards_made = _extract_knowledge_from_analysis(video)
+
             db.session.commit()
-            return jsonify({"success": True, "video": video.to_dict()})
+            return jsonify({
+                "success": True,
+                "video": video.to_dict(),
+                "knowledge_cards_created": cards_made,
+            })
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
@@ -686,6 +694,74 @@ def _write_table_to_doc(doc, rows):
                         for run in p.runs:
                             run.bold = True
     doc.add_paragraph('')
+
+
+    @app.route('/api/admin/migrate-knowledge', methods=['POST'])
+    def api_migrate_knowledge():
+        """将已有已分析视频的分析报告拆解为知识卡片"""
+        videos = Video.query.filter_by(is_analyzed=True).all()
+        total = 0
+        for v in videos:
+            if v.analysis and len(v.analysis) > 100:
+                n = _extract_knowledge_from_analysis(v)
+                total += n
+        db.session.commit()
+        return jsonify({"success": True, "cards_created": total})
+
+
+def _extract_knowledge_from_analysis(video):
+    """从视频AI分析报告中自动提取知识卡片"""
+    analysis = video.analysis
+    if not analysis:
+        return 0
+
+    # 按 ### 标题拆分为知识片段
+    sections = analysis.split('\n### ')
+    cards_made = 0
+
+    # 找到或创建知识库文档
+    doc = KnowledgeDoc.query.filter_by(title='视频分析精华').first()
+    if not doc:
+        doc = KnowledgeDoc(
+            title='视频分析精华',
+            file_name='video_analysis_knowledge.md',
+            content='',
+            card_count=0,
+            group_name='视频分析知识',
+        )
+        db.session.add(doc)
+        db.session.flush()
+
+    for sec in sections[1:]:  # 跳过第一部分（视频概述）
+        lines = sec.strip().split('\n')
+        title = lines[0].strip()[:200] if lines else '分析片段'
+        # 跳过太短的标题（如纯数字、纯符号）
+        if len(title) < 3:
+            continue
+        content = '\n'.join(lines[1:]).strip()[:2000] if len(lines) > 1 else sec.strip()[:2000]
+        if len(content) < 30:
+            continue
+
+        # 提取标签
+        tags = []
+        tag_keywords = ['开头', '中段', '结尾', '爆款', '受众', '文案', '制作', '拍摄', '剪辑',
+                        'BGM', '标签', '方法论', '改进', '创新', '结构', '节奏']
+        for t in tag_keywords:
+            if t in title or t in content[:100]:
+                tags.append(t)
+
+        card = KnowledgeCard(
+            doc_id=doc.id,
+            title=f"🎬 {video.title[:40]} — {title[:80]}",
+            content=content,
+            tags=', '.join(tags[:5]) if tags else '视频分析',
+        )
+        db.session.add(card)
+        cards_made += 1
+
+    doc.card_count = KnowledgeCard.query.filter_by(doc_id=doc.id).count()
+    db.session.add(doc)
+    return cards_made
 
 
 def extract_keywords(text):
