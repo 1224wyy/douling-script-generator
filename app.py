@@ -439,6 +439,47 @@ def create_app():
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route('/api/videos/<int:video_id>/download-video', methods=['GET'])
+    def api_video_download(video_id):
+        """代理下载抖音视频（从CDN流式传输到浏览器）"""
+        video = Video.query.get_or_404(video_id)
+
+        # 重新解析获取新鲜播放地址
+        from utils.video_parser import parse_video_url as pvu
+        try:
+            parsed = pvu(video.url)
+        except Exception as e:
+            return jsonify({"error": f"获取播放地址失败: {str(e)}"}), 500
+
+        play_urls = parsed.get('play_urls', [])
+        if not play_urls:
+            return jsonify({"error": "未找到可用的视频播放地址"}), 404
+
+        # 尝试找到第一个可用的CDN地址
+        import urllib3
+        urllib3.disable_warnings()
+        for video_url in play_urls:
+            try:
+                resp = requests.get(video_url, headers={
+                    "User-Agent": "com.ss.android.ugc.aweme/110801",
+                    "Referer": "https://www.douyin.com/",
+                }, stream=True, timeout=30, verify=False)
+                if resp.status_code == 200:
+                    safe_name = (video.title or 'douyin_video')[:40].replace('/', '_').replace(' ', '_')
+                    def generate():
+                        for chunk in resp.iter_content(8192):
+                            if chunk:
+                                yield chunk
+                    return generate(), 200, {
+                        'Content-Type': 'video/mp4',
+                        'Content-Disposition': f'attachment; filename="{safe_name}.mp4"',
+                        'Content-Length': resp.headers.get('Content-Length', ''),
+                    }
+            except Exception:
+                continue
+
+        return jsonify({"error": "所有CDN地址均不可用"}), 500
+
     @app.route('/api/videos/<int:video_id>', methods=['PUT'])
     def api_video_update(video_id):
         video = Video.query.get_or_404(video_id)

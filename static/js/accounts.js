@@ -40,8 +40,9 @@ function renderVideos() {
                 </div>
             </div>
             <div class="list-item-actions">
-                <button class="btn btn-sm btn-outline" onclick="viewVideoDetail(${v.id})">👁 查看</button>
-                ${!v.is_analyzed ? `<button class="btn btn-sm btn-primary" onclick="analyzeVideoById(${v.id})">🔍 AI分析</button>` : ''}
+                <button class="btn btn-sm btn-outline" onclick="viewVideoDetail(${v.id})">👁</button>
+                ${!v.is_analyzed ? `<button class="btn btn-sm btn-primary" onclick="analyzeVideoById(${v.id})">🔍 AI</button>` : ''}
+                <button class="btn btn-sm btn-outline" onclick="downloadVideoFile(${v.id})" title="下载无水印视频">⬇️ 下载</button>
                 <button class="btn btn-sm btn-outline" onclick="changeVideoGroup(${v.id}, '${escapeHtml(v.group_name)}')">📁</button>
                 <button class="btn btn-sm btn-danger" onclick="deleteVideo(${v.id})">🗑</button>
             </div>
@@ -280,6 +281,11 @@ async function deleteVideo(id) {
             loadVideos();
         } catch (e) { showToast('删除失败', 'error'); }
     }
+}
+
+function downloadVideoFile(id) {
+    showToast('正在获取视频...', 'info');
+    window.open(`/api/videos/${id}/download-video`, '_blank');
 }
 
 function batchVideoOp() {
