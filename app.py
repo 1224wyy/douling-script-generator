@@ -476,125 +476,77 @@ def create_app():
         """导出脚本为文档格式 ?format=md|txt|docx"""
         fmt = request.args.get('format', 'md')
         script = Script.query.get_or_404(script_id)
-
-        safe_title = script.title[:30].replace('/', '_').replace('\\', '_').replace(' ', '_')
+        title = script.title or '脚本'
+        req = script.requirement or ''
+        content = script.content or ''
+        safe = title[:30].replace('/', '_').replace('\\', '_').replace(' ', '_').replace('#', '')
 
         if fmt == 'md':
-            content = f"# {script.title}\n\n> 创作需求：{script.requirement}\n> 生成时间：{script.created_at}\n\n---\n\n{script.content}"
-            return content, 200, {
-                'Content-Type': 'text/markdown; charset=utf-8',
-                'Content-Disposition': f'attachment; filename="{safe_title}.md"'
-            }
+            body = f"# {title}\n\n> 创作需求：{req}\n\n---\n\n{content}"
+            return body, 200, {'Content-Type': 'text/markdown; charset=utf-8', 'Content-Disposition': f'attachment; filename="{safe}.md"'}
 
         elif fmt == 'txt':
-            content = f"{script.title}\n{'='*50}\n创作需求：{script.requirement}\n生成时间：{script.created_at}\n{'='*50}\n\n{script.content}"
-            return content, 200, {
-                'Content-Type': 'text/plain; charset=utf-8',
-                'Content-Disposition': f'attachment; filename="{safe_title}.txt"'
-            }
+            sep = '=' * 50
+            body = f"{title}\n{sep}\n创作需求：{req}\n{sep}\n\n{content}"
+            return body, 200, {'Content-Type': 'text/plain; charset=utf-8', 'Content-Disposition': f'attachment; filename="{safe}.txt"'}
 
         elif fmt == 'docx':
             try:
                 from docx import Document
-                from docx.shared import Inches, Pt, Cm, RGBColor
-                from docx.enum.text import WD_ALIGN_PARAGRAPH
-                from docx.enum.table import WD_TABLE_ALIGNMENT
+                from docx.shared import Pt
                 from io import BytesIO
                 import re
 
                 doc = Document()
-                style = doc.styles['Normal']
-                font = style.font
-                font.name = 'Microsoft YaHei'
-                font.size = Pt(11)
+                doc.styles['Normal'].font.size = Pt(11)
 
-                doc.add_heading(script.title, 0)
-                if script.requirement:
-                    p = doc.add_paragraph()
-                    p.add_run(f"创作需求：{script.requirement}").italic = True
-                doc.add_paragraph(f"生成时间：{script.created_at}")
-                doc.add_paragraph('')
+                doc.add_heading(title, 0)
+                if req:
+                    doc.add_paragraph(req, style='Intense Quote')
 
-                # 解析内容
-                lines = script.content.split('\n')
-                i = 0
-                while i < len(lines):
-                    line = lines[i]
-
-                    # 标题
-                    if line.startswith('## '):
-                        doc.add_heading(line[3:], level=2)
-                    elif line.startswith('### '):
-                        doc.add_heading(line[4:], level=3)
-                    elif line.startswith('# '):
-                        doc.add_heading(line[2:], level=1)
-                    elif line.startswith('---'):
+                # 逐行处理：分离表格和非表格
+                lines = content.split('\n')
+                table_block = []
+                for line in lines:
+                    s = line.strip()
+                    # 收集表格行
+                    if s.startswith('|') and s.endswith('|'):
+                        table_block.append(s)
+                        continue
+                    else:
+                        # 先输出之前的表格
+                        if table_block:
+                            _write_table_to_doc(doc, table_block)
+                            table_block = []
+                    # 输出非表格行
+                    if s.startswith('## '):
+                        doc.add_heading(s[3:], level=2)
+                    elif s.startswith('### '):
+                        doc.add_heading(s[4:], level=3)
+                    elif s.startswith('# '):
+                        doc.add_heading(s[2:], level=1)
+                    elif s.startswith('- ') or s.startswith('* '):
+                        doc.add_paragraph(s[2:], style='List Bullet')
+                    elif re.match(r'^\d+[.)]\s', s):
+                        doc.add_paragraph(re.sub(r'^\d+[.)]\s', '', s), style='List Number')
+                    elif s == '---':
                         doc.add_paragraph('─' * 40)
+                    elif s:
+                        p = doc.add_paragraph(s)
+                        # 处理粗体标记
+                        for run in p.runs:
+                            run.text = run.text.replace('**', '')
 
-                    # 表格检测
-                    elif line.strip().startswith('|') and '|' in line:
-                        table_lines = []
-                        while i < len(lines) and lines[i].strip().startswith('|'):
-                            table_lines.append(lines[i])
-                            i += 1
-                        i -= 1  # 回退，外层会+1
-
-                        # 解析表格
-                        rows = []
-                        for tl in table_lines:
-                            cells = [c.strip() for c in tl.split('|') if c.strip()]
-                            # 跳过分隔行
-                            if all(re.match(r'^[-:]+$', c) for c in cells):
-                                continue
-                            rows.append(cells)
-
-                        if rows:
-                            num_cols = max(len(r) for r in rows)
-                            table = doc.add_table(rows=len(rows), cols=num_cols)
-                            table.style = 'Light Grid Accent 1'
-                            table.alignment = WD_TABLE_ALIGNMENT.CENTER
-
-                            for ri, row_cells in enumerate(rows):
-                                for ci, cell_text in enumerate(row_cells):
-                                    if ci < num_cols:
-                                        cell = table.cell(ri, ci)
-                                        cell.text = cell_text
-                                        # 表头加粗
-                                        if ri == 0:
-                                            for p in cell.paragraphs:
-                                                for run in p.runs:
-                                                    run.bold = True
-                                                    run.font.size = Pt(10)
-                            doc.add_paragraph('')
-
-                    # 列表
-                    elif line.strip().startswith('- ') or line.strip().startswith('* '):
-                        doc.add_paragraph(line.strip()[2:], style='List Bullet')
-
-                    # 无序号列表项（如 "1. xxx"）
-                    elif re.match(r'^\d+[.)]\s', line.strip()):
-                        doc.add_paragraph(re.sub(r'^\d+[.)]\s', '', line.strip()), style='List Number')
-
-                    # 普通段落
-                    elif line.strip():
-                        # 处理粗体
-                        p = doc.add_paragraph()
-                        parts = re.split(r'(\*\*.+?\*\*)', line)
-                        for part in parts:
-                            if part.startswith('**') and part.endswith('**'):
-                                run = p.add_run(part[2:-2])
-                                run.bold = True
-                            else:
-                                p.add_run(part)
-
-                    i += 1
+                # 末尾表格
+                if table_block:
+                    _write_table_to_doc(doc, table_block)
 
                 buf = BytesIO()
                 doc.save(buf)
                 buf.seek(0)
                 return buf.getvalue(), 200, {
                     'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                    'Content-Disposition': f'attachment; filename="{safe_title}.docx"'
+                    'Content-Disposition': f'attachment; filename="{safe}.docx"'
                 }
             except ImportError:
                 return jsonify({"error": "python-docx 未安装"}), 500
@@ -672,6 +624,33 @@ def create_app():
         return jsonify({"success": True, "count": count})
 
     return app
+
+
+def _write_table_to_doc(doc, rows):
+    """将 markdown 表格行列表写入 Word 表格"""
+    import re
+    data = []
+    for r in rows:
+        cells = [c.strip() for c in r.split('|')[1:-1]]  # skip leading/trailing empty
+        if all(re.match(r'^[-:\s]+$', c) for c in cells):
+            continue  # skip separator row
+        if cells:
+            data.append(cells)
+    if not data:
+        return
+    cols = max(len(r) for r in data)
+    table = doc.add_table(rows=len(data), cols=cols)
+    table.style = 'Light Grid Accent 1'
+    for ri, row in enumerate(data):
+        for ci, txt in enumerate(row):
+            if ci < cols:
+                cell = table.cell(ri, ci)
+                cell.text = txt
+                if ri == 0:
+                    for p in cell.paragraphs:
+                        for run in p.runs:
+                            run.bold = True
+    doc.add_paragraph('')
 
 
 def extract_keywords(text):
