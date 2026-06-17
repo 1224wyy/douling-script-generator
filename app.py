@@ -14,6 +14,10 @@ def create_app():
     app.config.from_object(Config)
     db.init_app(app)
 
+    # 确保必要目录存在
+    os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
+    os.makedirs(os.path.dirname(Config.SQLALCHEMY_DATABASE_URI.replace('sqlite:///', '')), exist_ok=True)
+
     with app.app_context():
         db.create_all()
 
