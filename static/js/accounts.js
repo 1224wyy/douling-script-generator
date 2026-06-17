@@ -283,9 +283,20 @@ async function deleteVideo(id) {
     }
 }
 
-function downloadVideoFile(id) {
-    showToast('正在获取视频...', 'info');
-    window.open(`/api/videos/${id}/download-video`, '_blank');
+async function downloadVideoFile(id) {
+    showToast('正在获取下载地址...', 'info');
+    try {
+        const data = await apiGet(`/api/videos/${id}/download-video`);
+        if (data.download_url) {
+            // 直接打开CDN链接，浏览器会下载或播放
+            window.open(data.download_url, '_blank');
+            showToast('下载链接已打开（如未开始下载，请右键另存为）', 'success');
+        } else {
+            showToast('获取下载链接失败', 'error');
+        }
+    } catch (e) {
+        showToast('获取失败: ' + e.message, 'error');
+    }
 }
 
 function batchVideoOp() {
