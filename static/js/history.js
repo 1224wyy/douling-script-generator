@@ -71,7 +71,7 @@ async function copyScriptContent(id) {
 }
 
 function downloadScript(id, format) {
-    window.open(`/api/scripts/${id}/download.${format}`, '_blank');
+    window.open(`/api/scripts/${id}/download?format=${format}`, '_blank');
 }
 
 async function deleteScript(id) {

@@ -227,10 +227,10 @@ function downloadResult(format) {
         }
         apiPost('/api/scripts', { title, content }).then(data => {
             lastGeneratedScriptId = data.script.id;
-            window.open(`/api/scripts/${data.script.id}/download.${format}`, '_blank');
+            window.open(`/api/scripts/${data.script.id}/download?format=${format}`, '_blank');
         }).catch(e => showToast('保存失败: ' + e.message, 'error'));
     } else {
-        window.open(`/api/scripts/${id}/download.${format}`, '_blank');
+        window.open(`/api/scripts/${id}/download?format=${format}`, '_blank');
     }
 }
 
