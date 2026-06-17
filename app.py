@@ -474,6 +474,84 @@ def create_app():
     return app
 
 
+@app.route('/api/admin/seed', methods=['POST'])
+def api_admin_seed():
+    """一键导入种子数据到共享数据库"""
+    import json as _json
+    seed_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'seed_data.json')
+    if not os.path.exists(seed_path):
+        return jsonify({"error": "种子数据文件不存在"}), 404
+
+    with open(seed_path, 'r', encoding='utf-8') as f:
+        data = _json.load(f)
+
+    count = {'plans': 0, 'knowledge_docs': 0, 'knowledge_cards': 0, 'videos': 0, 'scripts': 0}
+
+    # 导入策划
+    for p in data.get('plans', []):
+        plan = Plan(title=p.get('title', '')[:200], content=p.get('content', '')[:10000], source_type='import')
+        db.session.add(plan)
+        count['plans'] += 1
+
+    # 导入知识卡片（按 doc_id 分组创建文档）
+    cards_by_doc = {}
+    for card in data.get('knowledge_cards', []):
+        doc_id = card.get('doc_id', 'unknown')
+        if doc_id not in cards_by_doc:
+            cards_by_doc[doc_id] = []
+        cards_by_doc[doc_id].append(card)
+
+    for doc_id, cards in cards_by_doc.items():
+        doc = KnowledgeDoc(
+            title=(cards[0].get('title', '') or '知识文档')[:200],
+            file_name='imported.md',
+            content='\n\n'.join([c.get('raw_content', c.get('principle', '')) for c in cards[:50]]),
+            card_count=len(cards),
+            group_name='导入的知识',
+        )
+        db.session.add(doc)
+        db.session.flush()
+        count['knowledge_docs'] += 1
+
+        for card in cards[:50]:
+            tags = card.get('tags', '')
+            if isinstance(tags, list):
+                tags = ', '.join(tags)
+            kc = KnowledgeCard(
+                doc_id=doc.id,
+                title=(card.get('title', '') or '知识卡片')[:200],
+                content=(card.get('raw_content', card.get('principle', '')) or '')[:2000],
+                tags=str(tags)[:300],
+            )
+            db.session.add(kc)
+            count['knowledge_cards'] += 1
+
+    # 导入视频
+    for v in data.get('videos', []):
+        video = Video(
+            url=v.get('video_url', ''), title=v.get('video_title', '')[:300],
+            author=v.get('author_name', '')[:100],
+            parsed_content=f"【视频标题】{v.get('video_title','')}\n【作者】{v.get('author_name','')}\n【链接】{v.get('video_url','')}",
+            analysis=v.get('analysis_content', '')[:20000],
+            is_analyzed=v.get('analysis_status') == 'analyzed', group_name='全部视频',
+        )
+        db.session.add(video)
+        count['videos'] += 1
+
+    # 导入脚本
+    for s in data.get('scripts', []):
+        script = Script(
+            title=s.get('title', '')[:200], content=s.get('content', '')[:20000],
+            requirement=s.get('requirements', '')[:2000],
+            keywords=s.get('search_keywords', ''),
+        )
+        db.session.add(script)
+        count['scripts'] += 1
+
+    db.session.commit()
+    return jsonify({"success": True, "count": count})
+
+
 def extract_keywords(text):
     """从文本中提取关键词"""
     common = ['抖音', '短视频', '直播', '带货', '运营', '涨粉', '流量',
