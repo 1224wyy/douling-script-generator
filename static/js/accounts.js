@@ -92,7 +92,7 @@ async function parseVideo() {
             if (stats.length) detailHtml += `<p><strong>📊 数据表现：</strong>${stats.join(' · ')}</p>`;
             if (d.video_id) detailHtml += `<p><strong>🆔 视频ID：</strong>${escapeHtml(d.video_id)}</p>`;
             if (d.asr_transcript) detailHtml += `<div style="margin-top:12px;padding:10px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;"><strong>🎙 语音识别文案：</strong><br>${escapeHtml(d.asr_transcript)}</div>`;
-            else if (d.asr_success === false) detailHtml += `<p style="color:var(--text-muted);margin-top:8px;">🎙 语音识别：未能提取语音内容</p>`;
+            else if (d.asr_error) detailHtml += `<p style="color:var(--warning);margin-top:8px;">🎙 语音识别失败：${escapeHtml(d.asr_error)}</p>`;
 
             const isPartial = d.parse_status === 'partial' || d.parse_status === 'needs_manual' || d.parse_status === 'failed';
 

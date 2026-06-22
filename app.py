@@ -417,14 +417,14 @@ def create_app():
         db.session.commit()
 
         # 自动触发ASR语音转文字
-        asr_result = {"transcript": "", "success": False}
+        asr_result = {"transcript": "", "success": False, "error": "未执行"}
         try:
             asr_result = transcribe_video(url)
             if asr_result.get('success') and asr_result.get('text'):
                 video.parsed_content = video.parsed_content + f"\n\n【语音转文字文案】\n{asr_result['text']}"
                 db.session.commit()
-        except Exception:
-            pass
+        except Exception as e:
+            asr_result["error"] = str(e)
 
         return jsonify({
             "success": True,
@@ -449,6 +449,7 @@ def create_app():
                 "downloaded_file": parsed.get('downloaded_file', ''),
                 "asr_transcript": asr_result.get('text', '')[:500],
                 "asr_success": asr_result.get('success', False),
+                "asr_error": asr_result.get('error', ''),
             }
         })
 
