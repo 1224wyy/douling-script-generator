@@ -7,6 +7,7 @@ from models import db, Plan, KnowledgeDoc, KnowledgeCard, Video, Script
 from utils.deepseek import generate_script, generate_plan, analyze_video_content
 from utils.document_parser import parse_document, split_into_cards
 from utils.video_parser import parse_video_url
+from utils.speech_to_text import transcribe_video
 from datetime import datetime, timezone
 
 def create_app():
@@ -415,6 +416,16 @@ def create_app():
         db.session.add(video)
         db.session.commit()
 
+        # 自动触发ASR语音转文字
+        asr_result = {"transcript": "", "success": False}
+        try:
+            asr_result = transcribe_video(url)
+            if asr_result.get('success') and asr_result.get('text'):
+                video.parsed_content = video.parsed_content + f"\n\n【语音转文字文案】\n{asr_result['text']}"
+                db.session.commit()
+        except Exception:
+            pass
+
         return jsonify({
             "success": True,
             "video": video.to_dict(),
@@ -436,6 +447,8 @@ def create_app():
                 "parse_status": parsed.get('parse_status', 'success'),
                 "has_download": has_download,
                 "downloaded_file": parsed.get('downloaded_file', ''),
+                "asr_transcript": asr_result.get('text', '')[:500],
+                "asr_success": asr_result.get('success', False),
             }
         })
 
@@ -463,6 +476,22 @@ def create_app():
                 "video": video.to_dict(),
                 "knowledge_cards_created": cards_made,
             })
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/videos/<int:video_id>/transcribe', methods=['POST'])
+    def api_video_transcribe(video_id):
+        """ASR语音转文字"""
+        video = Video.query.get_or_404(video_id)
+        try:
+            result = transcribe_video(video.url)
+            if result.get('success') and result.get('text'):
+                # 将识别出的文案追加到视频内容中
+                transcript = result['text']
+                video.parsed_content = video.parsed_content + f"\n\n【语音转文字文案】\n{transcript}"
+                db.session.commit()
+                return jsonify({"success": True, "transcript": transcript[:500]})
+            return jsonify({"error": result.get('error', '识别失败'), "success": False}), 500
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
